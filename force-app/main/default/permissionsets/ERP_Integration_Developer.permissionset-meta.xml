@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Full access to ERP Integration demo objects and Apex classes for developers.</description>
+    <description>Full access to ERP Integration objects, Apex classes, and tabs.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>ERP Integration Developer</label>
     <classAccesses>
@@ -69,6 +69,14 @@
     </applicationVisibilities>
     <tabSettings>
         <tab>Sales_Order__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Integration_Log__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>dataMigrationTool</tab>
         <visibility>Visible</visibility>
     </tabSettings>
 </PermissionSet>
