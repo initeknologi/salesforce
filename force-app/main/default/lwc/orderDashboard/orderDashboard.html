@@ -1,0 +1,50 @@
+<template>
+    <lightning-card title="Order Dashboard" icon-name="standard:dashboard">
+        <div class="slds-p-around_medium">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+            </template>
+
+            <template lwc:if={summary}>
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-3 slds-p-bottom_small">
+                        <div class="metric-card slds-box slds-text-align_center">
+                            <p class="slds-text-heading_large">{summary.total}</p>
+                            <p class="slds-text-title_caps">Total Orders</p>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-bottom_small">
+                        <div class="metric-card slds-box slds-text-align_center synced">
+                            <p class="slds-text-heading_large">{summary.synced}</p>
+                            <p class="slds-text-title_caps">Synced</p>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-bottom_small">
+                        <div class="metric-card slds-box slds-text-align_center failed">
+                            <p class="slds-text-heading_large">{summary.syncFailed}</p>
+                            <p class="slds-text-title_caps">Sync Failed</p>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-bottom_small">
+                        <div class="metric-card slds-box slds-text-align_center">
+                            <p class="slds-text-heading_large">{summary.draft}</p>
+                            <p class="slds-text-title_caps">Draft</p>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-bottom_small">
+                        <div class="metric-card slds-box slds-text-align_center">
+                            <p class="slds-text-heading_large">{summary.submitted}</p>
+                            <p class="slds-text-title_caps">Submitted</p>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-bottom_small">
+                        <div class="metric-card slds-box slds-text-align_center syncing">
+                            <p class="slds-text-heading_large">{summary.syncing}</p>
+                            <p class="slds-text-title_caps">Syncing</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,23 @@
+{
+  "orgName": "ERP Integration Demo",
+  "edition": "Developer",
+  "features": ["EnableSetPasswordInApi", "PlatformCache"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    },
+    "securitySettings": {
+      "passwordPolicies": {
+        "complexity": "AlphaNumeric",
+        "expiration": "Never",
+        "lockoutInterval": "FifteenMinutes",
+        "maxLoginAttempts": "Ten",
+        "minimumPasswordLength": 8,
+        "questionRestriction": "DoesNotContainPassword"
+      }
+    }
+  }
+}

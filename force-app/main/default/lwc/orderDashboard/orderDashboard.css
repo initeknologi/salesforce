@@ -1,0 +1,16 @@
+.metric-card {
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.synced {
+    border-left: 4px solid #2e844a;
+}
+
+.failed {
+    border-left: 4px solid #c23934;
+}
+
+.syncing {
+    border-left: 4px solid #fe9339;
+}

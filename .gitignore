@@ -1,0 +1,34 @@
+# Salesforce cache
+.sf/
+.sfdx/
+.localdevserver/
+deploy-options.json
+
+# LWC VS Code autocomplete
+**/lwc/jsconfig.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Node
+node_modules/
+mock-erp/data/*.json
+!mock-erp/data/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Secrets
+.env
+*.pem
+auth-info.json
+
+# Test coverage
+coverage/
+test-results/

@@ -1,0 +1,23 @@
+[
+  {
+    "accountName": "Acme Corporation",
+    "orderDate": "2025-01-15",
+    "totalAmount": 15000,
+    "description": "Annual supply contract",
+    "status": "Draft"
+  },
+  {
+    "accountName": "Nordic Tech AB",
+    "orderDate": "2025-02-20",
+    "totalAmount": 8750.50,
+    "description": "Software licenses Q1",
+    "status": "Submitted"
+  },
+  {
+    "accountName": "Global Industries Ltd",
+    "orderDate": "2025-03-10",
+    "totalAmount": 3200,
+    "description": "Consulting services",
+    "status": "Draft"
+  }
+]

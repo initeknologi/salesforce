@@ -1,0 +1,33 @@
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.status-synced {
+    background-color: #2e844a;
+    color: #fff;
+}
+
+.status-failed {
+    background-color: #c23934;
+    color: #fff;
+}
+
+.status-syncing {
+    background-color: #fe9339;
+    color: #fff;
+}
+
+.status-submitted {
+    background-color: #0070d2;
+    color: #fff;
+}
+
+.status-default {
+    background-color: #ecebea;
+    color: #080707;
+}

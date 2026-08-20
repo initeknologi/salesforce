@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Operation__c</fullName>
+    <label>Operation</label>
+    <required>true</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Create Order</fullName>
+                <default>false</default>
+                <label>Create Order</label>
+            </value>
+            <value>
+                <fullName>Update Order</fullName>
+                <default>false</default>
+                <label>Update Order</label>
+            </value>
+            <value>
+                <fullName>Cancel Order</fullName>
+                <default>false</default>
+                <label>Cancel Order</label>
+            </value>
+            <value>
+                <fullName>Status Callback</fullName>
+                <default>false</default>
+                <label>Status Callback</label>
+            </value>
+            <value>
+                <fullName>Health Check</fullName>
+                <default>false</default>
+                <label>Health Check</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

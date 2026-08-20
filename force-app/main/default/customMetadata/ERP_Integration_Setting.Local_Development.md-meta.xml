@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Local Development</label>
+    <protected>false</protected>
+    <values>
+        <field>API_Base_URL__c</field>
+        <value xsi:type="xsd:string">https://matriarch-shriek-outskirts.ngrok-free.dev/api/v2.0</value>
+    </values>
+    <values>
+        <field>API_Key__c</field>
+        <value xsi:type="xsd:string">demo-api-key-local-dev</value>
+    </values>
+    <values>
+        <field>Is_Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Max_Retry_Attempts__c</field>
+        <value xsi:type="xsd:double">3.0</value>
+    </values>
+    <values>
+        <field>Timeout_Ms__c</field>
+        <value xsi:type="xsd:double">30000.0</value>
+    </values>
+</CustomMetadata>

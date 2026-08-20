@@ -1,0 +1,59 @@
+<template>
+    <lightning-card title="ERP Synchronization" icon-name="standard:connected_apps">
+        <div class="slds-p-around_medium">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Syncing..." size="medium"></lightning-spinner>
+            </template>
+
+            <template lwc:if={hasRecord}>
+                <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                    <div class="slds-col">
+                        <p class="slds-text-title_caps">Status</p>
+                        <span class={statusBadgeClass}>{statusLabel}</span>
+                    </div>
+                    <div class="slds-col">
+                        <p class="slds-text-title_caps">ERP Order ID</p>
+                        <p>{erpOrderId}</p>
+                    </div>
+                    <div class="slds-col">
+                        <p class="slds-text-title_caps">Last Sync</p>
+                        <p>
+                            <lightning-formatted-date-time
+                                value={lastSyncDate}
+                                year="numeric"
+                                month="short"
+                                day="2-digit"
+                                hour="2-digit"
+                                minute="2-digit">
+                            </lightning-formatted-date-time>
+                        </p>
+                    </div>
+                </div>
+
+                <template lwc:if={hasError}>
+                    <div class="slds-box slds-theme_error slds-m-bottom_medium">
+                        <p>{syncErrorMessage}</p>
+                    </div>
+                </template>
+            </template>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    label="Sync to ERP"
+                    icon-name="utility:sync"
+                    onclick={handleSync}
+                    disabled={isSyncDisabled}>
+                </lightning-button>
+                <lightning-button
+                    variant="neutral"
+                    label="Check ERP Health"
+                    icon-name="utility:heart"
+                    onclick={handleHealthCheck}
+                    class="slds-m-left_x-small"
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

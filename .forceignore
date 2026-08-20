@@ -1,0 +1,4 @@
+# Files excluded from push/deploy
+package.xml
+**/*.dup
+**/jsconfig.json

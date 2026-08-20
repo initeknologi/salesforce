@@ -1,0 +1,44 @@
+<template>
+    <lightning-card title="Data Migration (ETL)" icon-name="standard:data_integration_hub">
+        <div class="slds-p-around_medium">
+            <p class="slds-m-bottom_small slds-text-body_small">
+                Import sales orders from JSON payload. Paste an array of order objects to simulate ETL migration.
+            </p>
+
+            <lightning-textarea
+                label="JSON Import Payload"
+                value={jsonPayload}
+                onchange={handlePayloadChange}
+                placeholder="Paste JSON array of sales orders here"
+                class="slds-m-bottom_medium">
+            </lightning-textarea>
+
+            <lightning-button
+                variant="brand"
+                label="Run Import"
+                icon-name="utility:upload"
+                onclick={handleImport}
+                disabled={isLoading}>
+            </lightning-button>
+
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Importing..." size="small" class="slds-m-top_medium"></lightning-spinner>
+            </template>
+
+            <template lwc:if={result}>
+                <div class="slds-box slds-m-top_medium">
+                    <p><strong>Total:</strong> {result.totalRecords}</p>
+                    <p><strong>Success:</strong> {result.successCount}</p>
+                    <p><strong>Errors:</strong> {result.errorCount}</p>
+                    <template lwc:if={hasErrors}>
+                        <ul class="slds-list_dotted slds-m-top_x-small">
+                            <template for:each={result.errors} for:item="err">
+                                <li key={err}>{err}</li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
