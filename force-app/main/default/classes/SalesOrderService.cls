@@ -46,18 +46,35 @@ public with sharing class SalesOrderService {
     /**
      * @description Publishes platform events for asynchronous ERP sync.
      */
-    public static void publishSyncEvents(List<Sales_Order__c> orders, String operation) {
+    public static void publishSyncEvents(
+        List<Sales_Order__c> orders,
+        Map<Id, Sales_Order__c> oldMap
+    ) {
         List<Order_Sync_Event__e> events = new List<Order_Sync_Event__e>();
         for (Sales_Order__c order : orders) {
+            Sales_Order__c oldOrder = oldMap != null ? oldMap.get(order.Id) : null;
             events.add(new Order_Sync_Event__e(
                 Sales_Order_Id__c = order.Id,
-                Operation__c = operation,
+                Operation__c = resolveEventOperation(order, oldOrder),
                 Retry_Count__c = 0
             ));
         }
         if (!events.isEmpty()) {
             EventBus.publish(events);
         }
+    }
+
+    /**
+     * @description Resolves the platform event operation from order state.
+     */
+    public static String resolveEventOperation(
+        Sales_Order__c order,
+        Sales_Order__c oldOrder
+    ) {
+        if (order.Status__c == 'Cancelled') {
+            return 'CANCEL';
+        }
+        return String.isBlank(order.ERP_Order_Id__c) ? 'CREATE' : 'UPDATE';
     }
 
     /**
@@ -105,6 +122,10 @@ public with sharing class SalesOrderService {
      */
     @AuraEnabled(cacheable=true)
     public static Map<String, Integer> getOrderSummary() {
+        if (!Schema.sObjectType.Sales_Order__c.isAccessible()) {
+            throw new AuraHandledException('Insufficient access to Sales Orders.');
+        }
+
         Map<String, Integer> summary = new Map<String, Integer>{
             'total' => 0, 'draft' => 0, 'submitted' => 0,
             'synced' => 0, 'syncFailed' => 0, 'syncing' => 0

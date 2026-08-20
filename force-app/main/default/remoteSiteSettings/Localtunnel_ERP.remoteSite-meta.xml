@@ -2,6 +2,6 @@
 <RemoteSiteSetting xmlns="http://soap.sforce.com/2006/04/metadata">
     <disableProtocolSecurity>false</disableProtocolSecurity>
     <isActive>true</isActive>
-    <url>https://matriarch-shriek-outskirts.ngrok-free.dev</url>
-    <description>Localtunnel public URL for mock Dynamics 365 BC ERP server</description>
+    <url>https://your-subdomain.ngrok-free.app</url>
+    <description>Public tunnel URL for mock Dynamics 365 BC ERP server (replace with your ngrok URL)</description>
 </RemoteSiteSetting>

@@ -4,7 +4,7 @@
     <protected>false</protected>
     <values>
         <field>API_Base_URL__c</field>
-        <value xsi:type="xsd:string">https://matriarch-shriek-outskirts.ngrok-free.dev/api/v2.0</value>
+        <value xsi:type="xsd:string">https://your-subdomain.ngrok-free.app/api/v2.0</value>
     </values>
     <values>
         <field>API_Key__c</field>

@@ -89,7 +89,7 @@ private class SalesOrderServiceTest {
     insert order;
 
     Test.startTest();
-    SalesOrderService.publishSyncEvents(new List<Sales_Order__c>{ order }, 'CREATE');
+    SalesOrderService.publishSyncEvents(new List<Sales_Order__c>{ order }, null);
     Test.stopTest();
   }
 }

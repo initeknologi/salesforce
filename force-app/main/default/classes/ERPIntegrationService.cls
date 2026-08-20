@@ -39,13 +39,12 @@ public with sharing class ERPIntegrationService {
 
         Long startTime = System.currentTimeMillis();
         String requestBody = buildRequestPayload(order);
-        String endpoint = buildEndpoint(settings, order, operation);
+        String path = buildPath(order, operation);
 
         HttpRequest req = new HttpRequest();
-        req.setEndpoint(endpoint);
+        configureRequest(req, settings, path);
         req.setMethod(getHttpMethod(operation));
         req.setHeader('Content-Type', 'application/json');
-        req.setHeader('Authorization', 'Bearer ' + settings.API_Key__c);
         req.setHeader('Accept', 'application/json');
         req.setHeader('Bypass-Tunnel-Reminder', 'true');
         req.setBody(requestBody);
@@ -84,9 +83,8 @@ public with sharing class ERPIntegrationService {
         }
 
         HttpRequest req = new HttpRequest();
-        req.setEndpoint(settings.API_Base_URL__c + '/health');
+        configureRequest(req, settings, '/health');
         req.setMethod('GET');
-        req.setHeader('Authorization', 'Bearer ' + settings.API_Key__c);
         req.setHeader('Bypass-Tunnel-Reminder', 'true');
         req.setTimeout(10000);
 
@@ -95,6 +93,23 @@ public with sharing class ERPIntegrationService {
             return res.getStatusCode() == 200;
         } catch (Exception ex) {
             return false;
+        }
+    }
+
+    @TestVisible
+    private static void configureRequest(
+        HttpRequest req,
+        ERP_Integration_Setting__mdt settings,
+        String path
+    ) {
+        if (String.isNotBlank(settings.Named_Credential__c)) {
+            req.setEndpoint('callout:' + settings.Named_Credential__c + path);
+            if (String.isNotBlank(settings.API_Key__c)) {
+                req.setHeader('Authorization', 'Bearer ' + settings.API_Key__c);
+            }
+        } else {
+            req.setEndpoint(settings.API_Base_URL__c + path);
+            req.setHeader('Authorization', 'Bearer ' + settings.API_Key__c);
         }
     }
 
@@ -112,20 +127,15 @@ public with sharing class ERPIntegrationService {
     }
 
     @TestVisible
-    private static String buildEndpoint(
-        ERP_Integration_Setting__mdt settings,
-        Sales_Order__c order,
-        String operation
-    ) {
-        String baseUrl = settings.API_Base_URL__c;
+    private static String buildPath(Sales_Order__c order, String operation) {
         if (operation == OPERATION_CREATE) {
-            return baseUrl + '/salesOrders';
+            return '/salesOrders';
         } else if (operation == OPERATION_UPDATE) {
-            return baseUrl + '/salesOrders(' + order.ERP_Order_Id__c + ')';
+            return '/salesOrders(' + order.ERP_Order_Id__c + ')';
         } else if (operation == OPERATION_CANCEL) {
-            return baseUrl + '/salesOrders(' + order.ERP_Order_Id__c + ')/cancel';
+            return '/salesOrders(' + order.ERP_Order_Id__c + ')/cancel';
         }
-        return baseUrl + '/salesOrders';
+        return '/salesOrders';
     }
 
     @TestVisible

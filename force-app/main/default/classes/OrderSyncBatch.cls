@@ -2,7 +2,7 @@
  * @description Batch job for bulk ERP synchronization and data migration support.
  *              Processes orders in manageable chunks with callout support.
  */
-public class OrderSyncBatch implements Database.Batchable<SObject>, Database.AllowsCallouts, Database.Stateful {
+public with sharing class OrderSyncBatch implements Database.Batchable<SObject>, Database.AllowsCallouts, Database.Stateful {
     private Integer successCount = 0;
     private Integer failureCount = 0;
     private List<String> errorMessages = new List<String>();
@@ -41,7 +41,7 @@ public class OrderSyncBatch implements Database.Batchable<SObject>, Database.All
         Integration_Log__c summaryLog = IntegrationLogService.createLog(
             null,
             'Outbound',
-            'Health Check',
+            'Batch Sync',
             IntegrationLogService.LogStatus.SUCCESS,
             'Batch completed: ' + successCount + ' success, ' + failureCount + ' failed',
             String.join(errorMessages, '\n'),

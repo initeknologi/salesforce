@@ -7,32 +7,6 @@ on:
     branches: [main]
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
-  steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Salesforce CLI
-        run: npm install -g @salesforce/cli
-
-      - name: Authenticate Dev Hub
-        run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > auth.txt
-          sf org login sfdx-url --sfdx-url-file auth.txt --alias DevHub --set-default-dev-hub
-
-      - name: Create Scratch Org
-        run: sf org create scratch --definition-file config/project-scratch-def.json --alias ci-scratch --duration-days 1 --set-default
-
-      - name: Deploy Source
-        run: sf project deploy start --source-dir force-app --wait 10
-
-      - name: Run Apex Tests
-        run: sf apex run test --code-coverage --result-format human --wait 10
-
-      - name: Delete Scratch Org
-        if: always()
-        run: sf org delete scratch --target-org ci-scratch --no-prompt
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -42,11 +16,54 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Install ESLint for LWC
-        run: |
-          npm init -y
-          npm install --save-dev eslint @salesforce/eslint-config-lwc
+      - name: Install dependencies
+        run: npm ci
 
       - name: Lint LWC
-        run: npx eslint force-app/main/default/lwc --ext .js
+        run: npm run lint:lwc
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Dev Hub secret
+        id: auth-check
+        env:
+          AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          if [ -z "$AUTH_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "SFDX_AUTH_URL secret not set — skipping Salesforce validation."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.auth-check.outputs.configured == 'true'
+
+      - name: Install Salesforce CLI
+        if: steps.auth-check.outputs.configured == 'true'
+        run: npm install -g @salesforce/cli
+
+      - name: Authenticate Dev Hub
+        if: steps.auth-check.outputs.configured == 'true'
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > auth.txt
+          sf org login sfdx-url --sfdx-url-file auth.txt --alias DevHub --set-default-dev-hub
+
+      - name: Create Scratch Org
+        if: steps.auth-check.outputs.configured == 'true'
+        run: sf org create scratch --definition-file config/project-scratch-def.json --alias ci-scratch --duration-days 1 --set-default
+
+      - name: Deploy Source
+        if: steps.auth-check.outputs.configured == 'true'
+        run: sf project deploy start --source-dir force-app --wait 10
+
+      - name: Run Apex Tests
+        if: steps.auth-check.outputs.configured == 'true'
+        run: sf apex run test --code-coverage --result-format human --wait 10
+
+      - name: Delete Scratch Org
+        if: always() && steps.auth-check.outputs.configured == 'true'
+        run: sf org delete scratch --target-org ci-scratch --no-prompt
