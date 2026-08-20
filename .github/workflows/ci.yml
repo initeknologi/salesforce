@@ -8,6 +8,9 @@ on:
 
 jobs:
   validate:
+    # Requires SFDX_AUTH_URL secret in GitHub repo settings (Dev Hub auth URL).
+    # Skipped when secret is not configured so PR checks still pass.
+    if: ${{ secrets.SFDX_AUTH_URL != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +45,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Install ESLint for LWC
-        run: |
-          npm init -y
-          npm install --save-dev eslint @salesforce/eslint-config-lwc
+      - name: Install dependencies
+        run: npm ci
 
       - name: Lint LWC
-        run: npx eslint force-app/main/default/lwc --ext .js
+        run: npm run lint:lwc

@@ -1,0 +1,13 @@
+{
+  "name": "salesforce-erp-integration",
+  "private": true,
+  "description": "Salesforce ERP integration with Dynamics 365 Business Central",
+  "scripts": {
+    "lint:lwc": "eslint force-app/main/default/lwc --ext .js"
+  },
+  "devDependencies": {
+    "@salesforce/eslint-config-lwc": "^3.0.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0"
+  }
+}
