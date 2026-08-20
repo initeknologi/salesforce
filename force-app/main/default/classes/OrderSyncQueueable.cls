@@ -2,7 +2,7 @@
  * @description Asynchronous processor for ERP order synchronization via Platform Events.
  *              Implements event-driven architecture with retry support.
  */
-public class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
+public with sharing class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
     private List<Order_Sync_Event__e> events;
 
     public OrderSyncQueueable(List<Order_Sync_Event__e> events) {
@@ -20,8 +20,6 @@ public class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
             retryCounts.put(evt.Sales_Order_Id__c, Integer.valueOf(evt.Retry_Count__c ?? 0));
         }
 
-        SalesOrderService.markOrdersAsSyncing(new List<Id>(orderIds));
-
         Map<Id, Sales_Order__c> orders = new Map<Id, Sales_Order__c>([
             SELECT Id, Status__c, Account__c, Order_Date__c,
                    Total_Amount__c, Description__c, ERP_Order_Id__c
@@ -38,6 +36,11 @@ public class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
             }
 
             String operation = determineOperation(order, orderOperations.get(orderId));
+
+            if (shouldSkipSync(order, operation)) {
+                continue;
+            }
+
             ERPIntegrationService.SyncResult result = ERPIntegrationService.syncOrderToERP(
                 order, operation
             );
@@ -61,7 +64,7 @@ public class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
             for (Sales_Order__c order : failedRetries) {
                 retryEvents.add(new Order_Sync_Event__e(
                     Sales_Order_Id__c = order.Id,
-                    Operation__c = 'CREATE',
+                    Operation__c = orderOperations.get(order.Id),
                     Retry_Count__c = (retryCounts.get(order.Id) ?? 0) + 1
                 ));
             }
@@ -69,12 +72,23 @@ public class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
         }
     }
 
+    @TestVisible
+    private static Boolean shouldSkipSync(Sales_Order__c order, String operation) {
+        if (order.Status__c == 'Synced'
+            && operation == ERPIntegrationService.OPERATION_CREATE
+            && String.isNotBlank(order.ERP_Order_Id__c)) {
+            return true;
+        }
+        return false;
+    }
+
     private String determineOperation(Sales_Order__c order, String eventOperation) {
         if (eventOperation == 'CANCEL') {
             return ERPIntegrationService.OPERATION_CANCEL;
         }
-        return String.isBlank(order.ERP_Order_Id__c)
-            ? ERPIntegrationService.OPERATION_CREATE
-            : ERPIntegrationService.OPERATION_UPDATE;
+        if (eventOperation == 'UPDATE' || String.isNotBlank(order.ERP_Order_Id__c)) {
+            return ERPIntegrationService.OPERATION_UPDATE;
+        }
+        return ERPIntegrationService.OPERATION_CREATE;
     }
 }

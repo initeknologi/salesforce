@@ -9,7 +9,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-  steps:
+    steps:
       - uses: actions/checkout@v4
 
       - name: Install Salesforce CLI

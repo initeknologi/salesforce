@@ -103,3 +103,19 @@ Technical rationale behind key architecture choices in this project. Use this as
 **Decision:** On every push/PR — create scratch org, deploy, run Apex tests with coverage, lint LWC.
 
 **Production path:** Add promotion stages (Sandbox → UAT → Prod) and integrate Gearset or Copado if required by the client.
+
+---
+
+## 10. Named Credential support
+
+**Decision:** Optional `Named_Credential__c` field on Custom Metadata. When set, outbound callouts use `callout:ERP_Integration` instead of Remote Site URLs.
+
+**Rationale:** Named Credentials are the Salesforce standard for production endpoint and authentication management.
+
+---
+
+## 11. Inbound REST API authentication
+
+**Decision:** `OrderSyncRestResource` validates `Authorization: Bearer <API_Key>` on every POST callback.
+
+**Rationale:** Prevents unauthorized systems from updating Salesforce order status.

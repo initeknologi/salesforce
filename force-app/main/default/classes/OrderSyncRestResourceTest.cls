@@ -17,6 +17,7 @@ private class OrderSyncRestResourceTest {
     RestResponse res = new RestResponse();
     req.requestURI = '/services/apexrest/erp/v1/orders/' + order.Id;
     req.httpMethod = 'POST';
+    req.addHeader('Authorization', 'Bearer demo-api-key-local-dev');
     req.requestBody = Blob.valueOf(
       '{"status":"Released","erpOrderId":"BC-ORD-999"}'
     );
@@ -38,6 +39,25 @@ private class OrderSyncRestResourceTest {
     ];
     System.assertEquals('Synced', updated.Status__c);
     System.assertEquals('BC-ORD-999', updated.ERP_Order_Id__c);
+  }
+
+  @IsTest
+  static void handleStatusCallback_unauthorized() {
+    RestRequest req = new RestRequest();
+    RestResponse res = new RestResponse();
+    req.requestURI = '/services/apexrest/erp/v1/orders/001xx';
+    req.httpMethod = 'POST';
+    req.requestBody = Blob.valueOf('{"status":"Released"}');
+    RestContext.request = req;
+    RestContext.response = res;
+
+    Test.startTest();
+    OrderSyncRestResource.ResponseWrapper response =
+      OrderSyncRestResource.handleStatusCallback();
+    Test.stopTest();
+
+    System.assert(!response.success);
+    System.assertEquals(401, res.statusCode);
   }
 
   @IsTest

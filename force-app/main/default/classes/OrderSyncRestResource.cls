@@ -10,6 +10,13 @@ global with sharing class OrderSyncRestResource {
         RestResponse res = RestContext.response;
         ResponseWrapper response = new ResponseWrapper();
 
+        if (!ERPSettingsProvider.isValidInboundApiKey(req.headers.get('Authorization'))) {
+            res.statusCode = 401;
+            response.success = false;
+            response.message = 'Unauthorized.';
+            return response;
+        }
+
         try {
             String orderId = extractOrderId(req.requestURI);
             Map<String, Object> payload = (Map<String, Object>) JSON.deserializeUntyped(

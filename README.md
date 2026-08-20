@@ -33,13 +33,13 @@ A multinational company uses Salesforce as CRM and Microsoft Dynamics 365 Busine
 
 | Area | Implementation |
 |---|---|
-| Apex, LWC, SOQL | Service layer, 3 LWC components, record-triggered automation via Platform Events |
-| Administration & Security | Permission Sets, FLS, `with sharing`, `WITH SECURITY_ENFORCED` |
+| Apex, LWC, SOQL, Flow | Service layer, 3 LWCs, Platform Events, Record-Triggered Flow |
+| Administration & Security | Permission Sets, FLS, `with sharing`, `WITH SECURITY_ENFORCED`, inbound REST auth |
 | ERP Integration (D365 BC) | REST API callouts mimicking BC OData v2.0 |
 | Event-driven / Async | Platform Events + Queueable + Batch |
 | Data Migration / ETL | `DataMigrationService` + CSV/JSON samples + LWC import tool |
 | DevOps / CI-CD | GitHub Actions pipeline, deploy scripts (PowerShell + Bash) |
-| REST APIs | Inbound `@RestResource` + outbound HTTP callouts |
+| REST APIs | Inbound `@RestResource` with Bearer auth + outbound HTTP callouts |
 | Reports & Dashboards | `orderDashboard` LWC with aggregate SOQL; native Reports enabled on objects |
 | Sales / Service Cloud | Custom object maps to Order/Case patterns — see [SALES_SERVICE_CLOUD.md](docs/SALES_SERVICE_CLOUD.md) |
 | Documentation | README, [ARCHITECTURE.md](docs/ARCHITECTURE.md), [DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) |
@@ -54,7 +54,8 @@ A multinational company uses Salesforce as CRM and Microsoft Dynamics 365 Busine
 - **Bulkification** in triggers, batch, and queueable
 - **Security**: `with sharing`, Permission Sets, FLS enforcement
 - **Error handling & audit logging** on every integration call
-- **Retry mechanism** with configurable max attempts
+- **Inbound REST authentication** — Bearer token validated against Custom Metadata API key
+- **Named Credential support** — Optional outbound callouts via `callout:ERP_Integration`
 
 ## Prerequisites
 
