@@ -29,20 +29,20 @@ A multinational company uses Salesforce as CRM and Microsoft Dynamics 365 Busine
 └─────────────────────┘
 ```
 
-## Job Requirements Coverage
+## Capabilities
 
-| Requirement | Implementation |
+| Area | Implementation |
 |---|---|
-| Apex, LWC, SOQL, Flow | Service layer, 3 LWC components, record-triggered automation via Platform Events |
+| Apex, LWC, SOQL | Service layer, 3 LWC components, record-triggered automation via Platform Events |
 | Administration & Security | Permission Sets, FLS, `with sharing`, `WITH SECURITY_ENFORCED` |
 | ERP Integration (D365 BC) | REST API callouts mimicking BC OData v2.0 |
 | Event-driven / Async | Platform Events + Queueable + Batch |
 | Data Migration / ETL | `DataMigrationService` + CSV/JSON samples + LWC import tool |
 | DevOps / CI-CD | GitHub Actions pipeline, deploy scripts (PowerShell + Bash) |
-| REST/SOAP APIs | Inbound `@RestResource` + outbound HTTP callouts |
+| REST APIs | Inbound `@RestResource` + outbound HTTP callouts |
 | Reports & Dashboards | `orderDashboard` LWC with aggregate SOQL; native Reports enabled on objects |
 | Sales / Service Cloud | Custom object maps to Order/Case patterns — see [SALES_SERVICE_CLOUD.md](docs/SALES_SERVICE_CLOUD.md) |
-| Documentation | This README + inline Apex documentation |
+| Documentation | README, [ARCHITECTURE.md](docs/ARCHITECTURE.md), [DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) |
 
 ## Best Practices Applied
 
@@ -97,7 +97,7 @@ sf org open
 
 ### Step 3: Configure & Test
 
-1. Add tabs **Sales Orders** and **Integration Logs** to your app
+1. Open app **ERP Integration Demo** — tabs: **Sales Orders**, **Integration Logs**, **Accounts**
 2. Create an **Account** (e.g. "Acme Corporation")
 3. Create a **Sales Order** linked to the account, set Status = `Submitted`
 4. Add `erpOrderSyncPanel` LWC to the Sales Order record page
@@ -171,25 +171,54 @@ salesforce/
 
 ## Design Decisions
 
-1. **Platform Events over synchronous triggers** — Decouples DML from callouts, supports retry, and scales better under bulk updates.
+Key architecture choices and their rationale are documented in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), including:
 
-2. **Custom Metadata over Custom Settings** — Deployable across Sandbox/UAT/Production; cached via `ERPSettingsProvider`.
-
-3. **Callout governor limits** — Queueable with `AllowsCallouts` for single records; Batch for bulk; Platform Events to separate transaction boundaries.
-
-4. **Security** — Permission Sets (not Profile edits), `with sharing`, `WITH SECURITY_ENFORCED`; Named Credentials in production.
-
-5. **Release pipeline** — Scratch org validation on PR, automated tests with coverage gate, promote Sandbox → UAT → Production.
+- Why Platform Events instead of synchronous callouts
+- Why Custom Metadata for ERP configuration
+- Service layer and TriggerHandler patterns
+- Permission Sets, audit logging, and release pipeline
 
 ## Screenshots
 
-Application screenshots are stored in `docs/images/`. See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for the capture checklist.
+### App Home
 
-| | |
-|---|---|
-| App dashboard | `docs/images/01-app-home-dashboard.png` |
-| Sales Order (synced) | `docs/images/03-sales-order-synced.png` |
-| Integration Logs | `docs/images/05-integration-logs-list.png` |
+![App Home](docs/images/01-app-home.png)
+
+### Sales Orders — List View
+
+![Sales Orders List](docs/images/02-sales-orders-list.png)
+
+### Sales Order — Synced with ERP Synchronization panel
+
+![Sales Order Synced](docs/images/03-sales-order-synced.png)
+
+### Sync to ERP — success notification
+
+![Sync Success](docs/images/04-sync-success-toast.png)
+
+### ERP Health Check
+
+![ERP Health Check](docs/images/05-erp-health-check.png)
+
+### Integration Logs — List View
+
+![Integration Logs List](docs/images/06-integration-logs-list.png)
+
+### Integration Log — Detail (audit trail)
+
+![Integration Log Detail](docs/images/07-integration-log-detail.png)
+
+### Order Dashboard — Home page
+
+![Order Dashboard](docs/images/08-order-dashboard.png)
+
+### Sales Order — Sync Failed (error handling)
+
+![Sales Order Failed](docs/images/09-sales-order-failed.png)
+
+### Data Migration Tool (ETL)
+
+![Data Migration Tool](docs/images/10-data-migration-tool.png)
 
 ## Production Considerations
 
