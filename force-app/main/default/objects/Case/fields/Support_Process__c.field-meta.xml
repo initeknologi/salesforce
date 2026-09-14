@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Support_Process__c</fullName>
+    <description>Business process category used to route product and warranty support.</description>
+    <externalId>false</externalId>
+    <label>Support Process</label>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Product Issue</fullName><default>true</default><label>Product Issue</label></value>
+            <value><fullName>Warranty</fullName><default>false</default><label>Warranty</label></value>
+            <value><fullName>Return</fullName><default>false</default><label>Return</label></value>
+            <value><fullName>Billing</fullName><default>false</default><label>Billing</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

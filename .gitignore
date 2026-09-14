@@ -32,3 +32,16 @@ auth-info.json
 # Test coverage
 coverage/
 test-results/
+
+# Interview & personal prep (local only)
+docs/INTERVIEW_*.md
+docs/POLARIUM_*.md
+docs/SALESFORCE_BASICS_TUTORIAL.md
+docs/Salesforce_Basics_Tutorial.pptx
+scripts/generate-salesforce-basics-ppt.js
+
+# Local demo / org maintenance scripts
+scripts/cleanup-org-storage.apex
+scripts/empty-recycle-bin.apex
+scripts/run-recycle-bin-purge.apex
+scripts/setup-demo-*.apex

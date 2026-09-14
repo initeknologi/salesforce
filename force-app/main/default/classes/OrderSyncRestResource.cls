@@ -1,7 +1,3 @@
-/**
- * @description Inbound REST API for ERP status callbacks from Dynamics 365 Business Central.
- *              URL: /services/apexrest/erp/v1/orders/*
- */
 @RestResource(urlMapping='/erp/v1/orders/*')
 global with sharing class OrderSyncRestResource {
     @HttpPost
@@ -10,7 +6,11 @@ global with sharing class OrderSyncRestResource {
         RestResponse res = RestContext.response;
         ResponseWrapper response = new ResponseWrapper();
 
-        if (!ERPSettingsProvider.isValidInboundApiKey(req.headers.get('Authorization'))) {
+        String authorization = req.headers.get('Authorization');
+        if (String.isBlank(authorization)) {
+            authorization = req.headers.get('X-ERP-Authorization');
+        }
+        if (!ERPSettingsProvider.isValidInboundApiKey(authorization)) {
             res.statusCode = 401;
             response.success = false;
             response.message = 'Unauthorized.';

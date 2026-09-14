@@ -15,6 +15,10 @@
                 <field>Account__c</field>
             </layoutItems>
             <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Opportunity__c</field>
+            </layoutItems>
+            <layoutItems>
                 <behavior>Required</behavior>
                 <field>Order_Date__c</field>
             </layoutItems>
@@ -31,6 +35,14 @@
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>ERP_Order_Id__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Currency_Code__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Correlation_Id__c</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Readonly</behavior>

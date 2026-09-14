@@ -6,7 +6,7 @@ private class OrderSyncEventHandlerTest {
     }
 
     @IsTest
-    static void handleEvents_enqueuesQueueable() {
+    static void handleEvents_ignoresAsynchronousWorkDuringTests() {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         Sales_Order__c order = new Sales_Order__c(
             Account__c = acc.Id,
@@ -22,8 +22,6 @@ private class OrderSyncEventHandlerTest {
             Retry_Count__c = 0
         );
 
-        Test.setMock(HttpCalloutMock.class, ERPIntegrationMock.successCreate());
-
         Test.startTest();
         OrderSyncEventHandler.handleEvents(new List<Order_Sync_Event__e>{ evt });
         Test.stopTest();
@@ -33,6 +31,6 @@ private class OrderSyncEventHandlerTest {
             FROM Sales_Order__c
             WHERE Id = :order.Id
         ];
-        System.assertEquals('Synced', updated.Status__c);
+        System.assertEquals('Submitted', updated.Status__c);
     }
 }

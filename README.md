@@ -2,11 +2,11 @@
 
 Salesforce integration with Microsoft Dynamics 365 Business Central: Apex service layer, LWC UI, Platform Event-driven async sync, REST APIs, ETL data migration, and CI/CD deployment pipeline.
 
-> **Sales Cloud & Service Cloud** — This project uses a custom `Sales_Order__c` object to isolate ERP sync logic. The same patterns apply to standard **Order**, **Opportunity**, **Case**, and **Entitlement** objects in production. See [docs/SALES_SERVICE_CLOUD.md](docs/SALES_SERVICE_CLOUD.md) for mapping and best practices.
+> **Sales Cloud & Service Cloud** — The implementation connects standard Account, Opportunity, Product, Asset, Case, Contact, and Task records to a dedicated `Sales_Order__c` ERP boundary. See [docs/REAL_CASE_ARCHITECTURE.md](docs/REAL_CASE_ARCHITECTURE.md) and [docs/SALES_SERVICE_CLOUD.md](docs/SALES_SERVICE_CLOUD.md).
 
 ## Business Scenario
 
-A multinational company uses Salesforce as CRM and Microsoft Dynamics 365 Business Central as ERP. Sales orders created in Salesforce must sync to ERP for fulfillment, with bidirectional status updates and full audit logging.
+A global energy-storage company uses Salesforce as CRM and Microsoft Dynamics 365 Business Central as ERP. Closing an Opportunity creates one traceable draft Sales Order. Submitted orders sync asynchronously to ERP with idempotency, retry, bidirectional status updates, and audit logging. Service agents manage installed battery Assets and warranty Cases from the same customer record.
 
 ## Architecture
 
@@ -33,7 +33,7 @@ A multinational company uses Salesforce as CRM and Microsoft Dynamics 365 Busine
 
 | Area | Implementation |
 |---|---|
-| Apex, LWC, SOQL, Flow | Service layer, 3 LWCs, Platform Events, Record-Triggered Flow |
+| Apex, LWC, SOQL, Flow | Service layer, 4 LWCs, Platform Events, and three record-triggered Flows |
 | Administration & Security | Permission Sets, FLS, `with sharing`, `WITH SECURITY_ENFORCED`, inbound REST auth |
 | ERP Integration (D365 BC) | REST API callouts mimicking BC OData v2.0 |
 | Event-driven / Async | Platform Events + Queueable + Batch |
@@ -41,19 +41,22 @@ A multinational company uses Salesforce as CRM and Microsoft Dynamics 365 Busine
 | DevOps / CI-CD | GitHub Actions pipeline, deploy scripts (PowerShell + Bash) |
 | REST APIs | Inbound `@RestResource` with Bearer auth + outbound HTTP callouts |
 | Reports & Dashboards | `orderDashboard` LWC with aggregate SOQL; native Reports enabled on objects |
-| Sales / Service Cloud | Custom object maps to Order/Case patterns — see [SALES_SERVICE_CLOUD.md](docs/SALES_SERVICE_CLOUD.md) |
-| Documentation | README, [ARCHITECTURE.md](docs/ARCHITECTURE.md), [DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) |
+| Sales / Service Cloud | Closed Won order automation, Account Customer 360, installed Assets, warranty Case triage, and Tasks |
+| Documentation | README, [REAL_CASE_ARCHITECTURE.md](docs/REAL_CASE_ARCHITECTURE.md), [DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), [REQUIREMENTS_SOLUTION_MAP.md](docs/REQUIREMENTS_SOLUTION_MAP.md) |
 
-## Best Practices Applied
+## Implementation notes
 
 - **One Trigger Per Object** with `TriggerHandler` framework
-- **Service Layer Pattern** — business logic separated from triggers/UI
+- **Service layer** — business logic separated from triggers/UI
 - **Custom Metadata** for integration configuration (deployable, testable)
-- **Platform Events** for decoupled, event-driven architecture
-- **Comprehensive test classes** with `HttpCalloutMock`
+- **Platform Events** for async sync (decoupled from trigger transaction)
+- **Apex tests** with `HttpCalloutMock`
 - **Bulkification** in triggers, batch, and queueable
 - **Security**: `with sharing`, Permission Sets, FLS enforcement
 - **Error handling & audit logging** on every integration call
+- **Idempotency** with unique correlation and external IDs across CRM and ERP
+- **Callout-safe bulk processing** with deferred batch DML and Queueable chaining
+- **Flow fault paths** that create actionable follow-up Tasks
 - **Inbound REST authentication** — Bearer token validated against Custom Metadata API key
 - **Named Credential support** — Optional outbound callouts via `callout:ERP_Integration`
 
@@ -98,12 +101,17 @@ sf org open
 
 ### Step 3: Configure & Test
 
-1. Open app **ERP Integration Demo** — tabs: **Sales Orders**, **Integration Logs**, **Accounts**
-2. Create an **Account** (e.g. "Acme Corporation")
-3. Create a **Sales Order** linked to the account, set Status = `Submitted`
-4. Add `erpOrderSyncPanel` LWC to the Sales Order record page
-5. Click **Sync to ERP** — order syncs to mock server
-6. Check **Integration Logs** for audit trail
+1. Open app **ERP Integration Demo**.
+2. Load the minimal business scenario:
+
+```powershell
+sf apex run --target-org DevHub --file scripts/setup-real-case-data.apex
+```
+
+3. Open **Nordic Telecom AB** and review Customer 360.
+4. Open **Sweden 5G Backup Expansion** and its generated draft Sales Order.
+5. Change the order to `Submitted`; then inspect the ERP Order ID and Integration Log.
+6. Open the installed Asset and **Battery module temperature warning** warranty Case.
 
 ### Step 4: Run Tests
 
@@ -142,6 +150,9 @@ salesforce/
 | `OrderSyncBatch` | Bulk sync for data migration |
 | `OrderSyncRestResource` | Inbound REST API for ERP callbacks |
 | `DataMigrationService` | ETL import from JSON |
+| `OpportunityOrderService` | Idempotent Closed Won Opportunity conversion |
+| `WarrantyCaseService` | Warranty triage and duplicate-safe Task creation |
+| `Customer360Controller` | Secure Account Sales and Service summary |
 | `TriggerHandler` | Reusable trigger framework |
 
 ### LWC Components
@@ -151,6 +162,7 @@ salesforce/
 | `erpOrderSyncPanel` | Record page sync controls |
 | `orderDashboard` | Home page order statistics |
 | `dataMigrationTool` | ETL import interface |
+| `customer360Summary` | Account-level sales, asset, case, and integration KPIs |
 
 ## API Endpoints
 

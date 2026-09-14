@@ -1,7 +1,3 @@
-/**
- * @description Handles REST API communication with Microsoft Dynamics 365 Business Central.
- *              Implements outbound integration with comprehensive error handling and logging.
- */
 public with sharing class ERPIntegrationService {
     public static final String OPERATION_CREATE = 'Create Order';
     public static final String OPERATION_UPDATE = 'Update Order';
@@ -20,14 +16,35 @@ public with sharing class ERPIntegrationService {
         public String customerNumber;
         public String orderDate;
         public Decimal totalAmount;
+        public String currencyCode;
         public String description;
         public String status;
     }
 
-    /**
-     * @description Synchronizes a sales order to the ERP system via REST API.
-     */
+    public class ReturnSyncResult {
+        public Boolean success;
+        public String returnOrderId;
+        public String errorMessage;
+        public Integer httpStatusCode;
+        public String responseBody;
+    }
+
+    public class ReturnOrderPayload {
+        public String externalId;
+        public String customerNumber;
+        public String caseNumber;
+        public String reason;
+    }
+
     public static SyncResult syncOrderToERP(Sales_Order__c order, String operation) {
+        return syncOrderToERP(order, operation, true);
+    }
+
+    public static SyncResult syncOrderToERP(
+        Sales_Order__c order,
+        String operation,
+        Boolean persistLog
+    ) {
         SyncResult result = new SyncResult();
         result.success = false;
 
@@ -46,6 +63,12 @@ public with sharing class ERPIntegrationService {
         req.setMethod(getHttpMethod(operation));
         req.setHeader('Content-Type', 'application/json');
         req.setHeader('Accept', 'application/json');
+        req.setHeader(
+            'Idempotency-Key',
+            String.isNotBlank(order.Correlation_Id__c)
+                ? order.Correlation_Id__c
+                : String.valueOf(order.Id)
+        );
         req.setHeader('Bypass-Tunnel-Reminder', 'true');
         req.setBody(requestBody);
         req.setTimeout(Integer.valueOf(settings.Timeout_Ms__c ?? 30000));
@@ -68,14 +91,93 @@ public with sharing class ERPIntegrationService {
         }
 
         Long duration = System.currentTimeMillis() - startTime;
-        logIntegration(order.Id, operation, requestBody, result, duration);
+        if (persistLog) {
+            IntegrationLogService.insertLogs(new List<Integration_Log__c>{
+                buildIntegrationLog(order.Id, operation, requestBody, result, duration)
+            });
+        }
 
         return result;
     }
 
-    /**
-     * @description Performs a health check against the ERP API.
-     */
+    public static Map<String, Map<String, Object>> fetchSalesOrdersByExternalId() {
+        Map<String, Map<String, Object>> indexed =
+            new Map<String, Map<String, Object>>();
+        ERP_Integration_Setting__mdt settings = ERPSettingsProvider.getSettings();
+        if (settings == null || !settings.Is_Active__c) {
+            return indexed;
+        }
+
+        HttpRequest req = new HttpRequest();
+        configureRequest(req, settings, '/salesOrders');
+        req.setMethod('GET');
+        req.setHeader('Accept', 'application/json');
+        req.setHeader('Bypass-Tunnel-Reminder', 'true');
+        req.setTimeout(Integer.valueOf(settings.Timeout_Ms__c ?? 30000));
+
+        try {
+            HttpResponse res = new Http().send(req);
+            if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
+                return indexed;
+            }
+            Map<String, Object> parsed =
+                (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+            List<Object> rows = parsed.containsKey('value')
+                ? (List<Object>) parsed.get('value')
+                : new List<Object>();
+            for (Object row : rows) {
+                Map<String, Object> order = (Map<String, Object>) row;
+                String externalId = order.containsKey('externalId')
+                    ? String.valueOf(order.get('externalId'))
+                    : null;
+                if (String.isNotBlank(externalId)) {
+                    indexed.put(externalId, order);
+                }
+            }
+        } catch (Exception ex) {
+            System.debug(LoggingLevel.WARN, 'ERP list fetch failed: ' + ex.getMessage());
+        }
+        return indexed;
+    }
+
+    public static ReturnSyncResult syncReturnOrderToERP(Case supportCase) {
+        ReturnSyncResult result = new ReturnSyncResult();
+        result.success = false;
+
+        ERP_Integration_Setting__mdt settings = ERPSettingsProvider.getSettings();
+        if (settings == null || !settings.Is_Active__c) {
+            result.errorMessage = 'ERP integration is not configured or inactive.';
+            return result;
+        }
+
+        String requestBody = buildReturnOrderPayload(supportCase);
+        HttpRequest req = new HttpRequest();
+        configureRequest(req, settings, '/returnOrders');
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/json');
+        req.setHeader('Accept', 'application/json');
+        req.setHeader('Idempotency-Key', 'RMA-' + supportCase.Id);
+        req.setHeader('Bypass-Tunnel-Reminder', 'true');
+        req.setBody(requestBody);
+        req.setTimeout(Integer.valueOf(settings.Timeout_Ms__c ?? 30000));
+
+        try {
+            HttpResponse res = new Http().send(req);
+            result.httpStatusCode = res.getStatusCode();
+            result.responseBody = res.getBody();
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                result.success = true;
+                result.returnOrderId = parseReturnOrderId(res.getBody());
+            } else {
+                result.errorMessage = 'ERP API returned status ' + res.getStatusCode();
+            }
+        } catch (Exception ex) {
+            result.errorMessage = ex.getMessage();
+            result.httpStatusCode = 0;
+        }
+        return result;
+    }
+
     public static Boolean healthCheck() {
         ERP_Integration_Setting__mdt settings = ERPSettingsProvider.getSettings();
         if (settings == null) {
@@ -113,14 +215,19 @@ public with sharing class ERPIntegrationService {
         }
     }
 
-    @TestVisible
-    private static String buildRequestPayload(Sales_Order__c order) {
+    public static String buildRequestPayload(Sales_Order__c order) {
         ERPOrderPayload payload = new ERPOrderPayload();
-        payload.externalId = order.Id;
-        payload.customerNumber = order.Account__c != null ? String.valueOf(order.Account__c) : '';
+        payload.externalId = String.isNotBlank(order.Correlation_Id__c)
+            ? order.Correlation_Id__c
+            : String.valueOf(order.Id);
+        payload.customerNumber = order.Account__r != null &&
+            String.isNotBlank(order.Account__r.BC_Customer_Id__c)
+            ? order.Account__r.BC_Customer_Id__c
+            : String.valueOf(order.Account__c);
         payload.orderDate = order.Order_Date__c != null
             ? String.valueOf(order.Order_Date__c) : '';
         payload.totalAmount = order.Total_Amount__c;
+        payload.currencyCode = order.Currency_Code__c;
         payload.description = order.Description__c;
         payload.status = order.Status__c;
         return JSON.serialize(payload);
@@ -159,7 +266,24 @@ public with sharing class ERPIntegrationService {
         return parsed.containsKey('id') ? String.valueOf(parsed.get('id')) : null;
     }
 
-    private static void logIntegration(
+    @TestVisible
+    private static String parseReturnOrderId(String responseBody) {
+        return parseErpOrderId(responseBody);
+    }
+
+    public static String buildReturnOrderPayload(Case supportCase) {
+        ReturnOrderPayload payload = new ReturnOrderPayload();
+        payload.externalId = 'CASE-' + supportCase.Id;
+        payload.customerNumber = supportCase.Account != null &&
+            String.isNotBlank(supportCase.Account.BC_Customer_Id__c)
+            ? supportCase.Account.BC_Customer_Id__c
+            : String.valueOf(supportCase.AccountId);
+        payload.caseNumber = supportCase.CaseNumber;
+        payload.reason = 'Warranty RMA';
+        return JSON.serialize(payload);
+    }
+
+    public static Integration_Log__c buildIntegrationLog(
         Id orderId,
         String operation,
         String requestBody,
@@ -170,7 +294,7 @@ public with sharing class ERPIntegrationService {
             ? IntegrationLogService.LogStatus.SUCCESS
             : IntegrationLogService.LogStatus.FAILED;
 
-        Integration_Log__c log = IntegrationLogService.createLog(
+        return IntegrationLogService.createLog(
             orderId,
             'Outbound',
             operation,
@@ -181,6 +305,5 @@ public with sharing class ERPIntegrationService {
             result.errorMessage,
             durationMs
         );
-        IntegrationLogService.insertLogs(new List<Integration_Log__c>{ log });
     }
 }

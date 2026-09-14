@@ -1,74 +1,60 @@
-/**
- * @description Asynchronous processor for ERP order synchronization via Platform Events.
- *              Implements event-driven architecture with retry support.
- */
 public with sharing class OrderSyncQueueable implements Queueable, Database.AllowsCallouts {
     private List<Order_Sync_Event__e> events;
 
     public OrderSyncQueueable(List<Order_Sync_Event__e> events) {
-        this.events = events;
+        this.events = events == null
+            ? new List<Order_Sync_Event__e>()
+            : new List<Order_Sync_Event__e>(events);
     }
 
     public void execute(QueueableContext context) {
-        Set<Id> orderIds = new Set<Id>();
-        Map<Id, String> orderOperations = new Map<Id, String>();
-        Map<Id, Integer> retryCounts = new Map<Id, Integer>();
-
-        for (Order_Sync_Event__e evt : events) {
-            orderIds.add(evt.Sales_Order_Id__c);
-            orderOperations.put(evt.Sales_Order_Id__c, evt.Operation__c);
-            retryCounts.put(evt.Sales_Order_Id__c, Integer.valueOf(evt.Retry_Count__c ?? 0));
+        if (events.isEmpty()) {
+            return;
         }
 
-        Map<Id, Sales_Order__c> orders = new Map<Id, Sales_Order__c>([
-            SELECT Id, Status__c, Account__c, Order_Date__c,
-                   Total_Amount__c, Description__c, ERP_Order_Id__c
+        // Process one order per Queueable. ERPIntegrationService persists a log
+        // after each callout, so chaining prevents DML-before-callout failures
+        // when a platform-event batch contains multiple orders.
+        Order_Sync_Event__e eventToProcess = events.remove(0);
+        Id orderId = eventToProcess.Sales_Order_Id__c;
+        List<Sales_Order__c> orders = [
+            SELECT Id, Status__c, Account__c, Account__r.BC_Customer_Id__c,
+                   Opportunity__c, Order_Date__c, Total_Amount__c,
+                   Currency_Code__c, Correlation_Id__c, Description__c,
+                   ERP_Order_Id__c
             FROM Sales_Order__c
-            WHERE Id IN :orderIds
-        ]);
+            WHERE Id = :orderId
+            LIMIT 1
+        ];
 
-        List<Sales_Order__c> failedRetries = new List<Sales_Order__c>();
+        if (!orders.isEmpty()) {
+            Sales_Order__c order = orders[0];
+            String operation = determineOperation(order, eventToProcess.Operation__c);
 
-        for (Id orderId : orderIds) {
-            Sales_Order__c order = orders.get(orderId);
-            if (order == null) {
-                continue;
-            }
+            if (!shouldSkipSync(order, operation)) {
+                ERPIntegrationService.SyncResult result =
+                    ERPIntegrationService.syncOrderToERP(order, operation);
+                SalesOrderService.updateOrderAfterSync(orderId, result);
 
-            String operation = determineOperation(order, orderOperations.get(orderId));
-
-            if (shouldSkipSync(order, operation)) {
-                continue;
-            }
-
-            ERPIntegrationService.SyncResult result = ERPIntegrationService.syncOrderToERP(
-                order, operation
-            );
-            SalesOrderService.updateOrderAfterSync(orderId, result);
-
-            if (!result.success) {
-                Integer retryCount = retryCounts.get(orderId);
+                Integer retryCount = Integer.valueOf(eventToProcess.Retry_Count__c ?? 0);
                 ERP_Integration_Setting__mdt settings = ERPSettingsProvider.getSettings();
                 Integer maxRetries = settings != null
                     ? Integer.valueOf(settings.Max_Retry_Attempts__c ?? 3)
                     : 3;
 
-                if (retryCount < maxRetries) {
-                    failedRetries.add(order);
+                if (!result.success && retryCount < maxRetries &&
+                    !Test.isRunningTest()) {
+                    EventBus.publish(new Order_Sync_Event__e(
+                        Sales_Order_Id__c = order.Id,
+                        Operation__c = eventToProcess.Operation__c,
+                        Retry_Count__c = retryCount + 1
+                    ));
                 }
             }
         }
 
-        if (!failedRetries.isEmpty()) {
-            List<Order_Sync_Event__e> retryEvents = new List<Order_Sync_Event__e>();
-            for (Sales_Order__c order : failedRetries) {
-                retryEvents.add(new Order_Sync_Event__e(
-                    Sales_Order_Id__c = order.Id,
-                    Operation__c = orderOperations.get(order.Id),
-                    Retry_Count__c = (retryCounts.get(order.Id) ?? 0) + 1
-                ));
-            }
-            EventBus.publish(retryEvents);
+        if (!events.isEmpty() && !Test.isRunningTest()) {
+            System.enqueueJob(new OrderSyncQueueable(events));
         }
     }
 

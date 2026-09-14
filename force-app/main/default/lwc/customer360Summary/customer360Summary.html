@@ -1,0 +1,36 @@
+<template>
+    <lightning-card title="Customer 360" icon-name="standard:account">
+        <template lwc:if={summary}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <div class="identity slds-m-bottom_medium">
+                    <p class="slds-text-heading_small">{summary.accountName}</p>
+                    <p class="slds-text-body_small">
+                        {summary.customerSegment} · {summary.region} · {summary.bcCustomerId}
+                    </p>
+                </div>
+                <div class="slds-grid slds-wrap slds-gutters_small">
+                    <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                        <div class="metric"><span>{summary.openOpportunities}</span>Open Opportunities</div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                        <div class="metric"><span>{summary.salesOrders}</span>Sales Orders</div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="metric"><span>{summary.installedAssets}</span>Installed Assets</div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="metric"><span>{summary.openCases}</span>Open Cases</div>
+                    </div>
+                </div>
+                <template lwc:if={summary.failedIntegrations}>
+                    <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-top_medium" role="alert">
+                        <span>{summary.failedIntegrations} order integration(s) require attention.</span>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <template lwc:if={error}>
+            <div class="slds-text-color_error slds-p-around_medium">{error}</div>
+        </template>
+    </lightning-card>
+</template>

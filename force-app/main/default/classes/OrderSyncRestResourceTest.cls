@@ -17,7 +17,8 @@ private class OrderSyncRestResourceTest {
     RestResponse res = new RestResponse();
     req.requestURI = '/services/apexrest/erp/v1/orders/' + order.Id;
     req.httpMethod = 'POST';
-    req.addHeader('Authorization', 'Bearer demo-api-key-local-dev');
+    // Apex tests cannot set the reserved Authorization header directly.
+    req.addHeader('X-ERP-Authorization', 'Bearer demo-api-key-local-dev');
     req.requestBody = Blob.valueOf(
       '{"status":"Released","erpOrderId":"BC-ORD-999"}'
     );

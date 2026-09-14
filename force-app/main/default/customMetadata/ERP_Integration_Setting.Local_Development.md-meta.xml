@@ -22,4 +22,8 @@
         <field>Timeout_Ms__c</field>
         <value xsi:type="xsd:double">30000.0</value>
     </values>
+    <values>
+        <field>Named_Credential__c</field>
+        <value xsi:type="xsd:string">ERP_BC_Mock</value>
+    </values>
 </CustomMetadata>

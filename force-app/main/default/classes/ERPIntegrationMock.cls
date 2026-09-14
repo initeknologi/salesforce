@@ -1,6 +1,3 @@
-/**
- * @description HTTP callout mock for ERP integration unit tests.
- */
 @IsTest
 public class ERPIntegrationMock implements HttpCalloutMock {
     private Integer statusCode;
@@ -39,6 +36,24 @@ public class ERPIntegrationMock implements HttpCalloutMock {
 
     public static ERPIntegrationMock healthCheckSuccess() {
         return new ERPIntegrationMock(200, '{"status":"healthy"}');
+    }
+
+    public static ERPIntegrationMock emptySalesOrderList() {
+        return new ERPIntegrationMock(200, '{"value":[]}');
+    }
+
+    public static ERPIntegrationMock salesOrderListMatch() {
+        return new ERPIntegrationMock(
+            200,
+            '{"value":[{"id":"BC-ORD-001","externalId":"corr-001","totalAmount":1000}]}'
+        );
+    }
+
+    public static ERPIntegrationMock successReturnCreate() {
+        return new ERPIntegrationMock(
+            201,
+            '{"id":"BC-RET-001","status":"Open","externalId":"CASE-test"}'
+        );
     }
 
     public HTTPResponse respond(HTTPRequest req) {

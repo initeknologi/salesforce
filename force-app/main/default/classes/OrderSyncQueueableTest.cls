@@ -12,7 +12,7 @@ private class OrderSyncQueueableTest {
             Account__c = acc.Id,
             Order_Date__c = Date.today(),
             Total_Amount__c = 1200,
-            Status__c = 'Submitted'
+            Status__c = 'Syncing'
         );
         insert order;
 
@@ -63,7 +63,7 @@ private class OrderSyncQueueableTest {
             Account__c = acc.Id,
             Order_Date__c = Date.today(),
             Total_Amount__c = 800,
-            Status__c = 'Submitted'
+            Status__c = 'Syncing'
         );
         insert order;
 
