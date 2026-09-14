@@ -80,6 +80,8 @@ npm start
 
 Server runs at `http://localhost:3001`. API Key: `demo-api-key-local-dev`
 
+A scratch org runs in Salesforce cloud and cannot call `localhost`. For live ERP sync, expose the mock server with [ngrok](https://ngrok.com) (see `scripts/setup-ngrok.bat` on Windows), then set the `ERP_BC_Mock` Named Credential endpoint to your tunnel URL, for example `https://your-subdomain.ngrok-free.app/api/v2.0`. Add the same host under **Remote Site Settings** if it is not already listed.
+
 ### Step 2: Create Scratch Org & Deploy
 
 ```powershell
@@ -105,7 +107,7 @@ sf org open
 2. Load the minimal business scenario:
 
 ```powershell
-sf apex run --target-org DevHub --file scripts/setup-real-case-data.apex
+sf apex run --target-org erp-demo --file scripts/setup-real-case-data.apex
 ```
 
 3. Open **Nordic Telecom AB** and review Customer 360.
