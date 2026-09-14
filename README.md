@@ -195,43 +195,67 @@ Key architecture choices and their rationale are documented in [docs/DESIGN_DECI
 
 ## Screenshots
 
-### App Home
+### Sales & Service Cloud
+
+#### Accounts — List View
+
+![Accounts List](docs/images/11-accounts-list.png)
+
+#### Account — Customer 360 LWC
+
+![Customer 360](docs/images/12-account-customer-360.png)
+
+#### Opportunity — Closed Won
+
+![Opportunity Closed Won](docs/images/13-opportunity-closed-won.png)
+
+#### Case — Warranty (Service Cloud)
+
+![Case Warranty](docs/images/14-case-warranty.png)
+
+#### Asset — Installed Equipment
+
+![Asset Record](docs/images/15-asset-record.png)
+
+### ERP Integration
+
+#### App Home
 
 ![App Home](docs/images/01-app-home.png)
 
-### Sales Orders — List View
+#### Sales Orders — List View
 
 ![Sales Orders List](docs/images/02-sales-orders-list.png)
 
-### Sales Order — Synced with ERP Synchronization panel
+#### Sales Order — Synced with ERP Synchronization panel
 
 ![Sales Order Synced](docs/images/03-sales-order-synced.png)
 
-### Sync to ERP — success notification
+#### Sync to ERP — success notification
 
 ![Sync Success](docs/images/04-sync-success-toast.png)
 
-### ERP Health Check
+#### ERP Health Check
 
 ![ERP Health Check](docs/images/05-erp-health-check.png)
 
-### Integration Logs — List View
+#### Integration Logs — List View
 
 ![Integration Logs List](docs/images/06-integration-logs-list.png)
 
-### Integration Log — Detail (audit trail)
+#### Integration Log — Detail (audit trail)
 
 ![Integration Log Detail](docs/images/07-integration-log-detail.png)
 
-### Order Dashboard — Home page
+#### Order Dashboard — Home page
 
 ![Order Dashboard](docs/images/08-order-dashboard.png)
 
-### Sales Order — Sync Failed (error handling)
+#### Sales Order — Sync Failed (error handling)
 
 ![Sales Order Failed](docs/images/09-sales-order-failed.png)
 
-### Data Migration Tool (ETL)
+#### Data Migration Tool (ETL)
 
 ![Data Migration Tool](docs/images/10-data-migration-tool.png)
 
