@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>BC_Return_Order_Id__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>Business Central sales return order identifier for an approved warranty case.</description>
+    <externalId>true</externalId>
+    <label>BC Return Order ID</label>
+    <length>50</length>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

@@ -34,6 +34,26 @@
                 <default>false</default>
                 <label>Health Check</label>
             </value>
+            <value>
+                <fullName>Batch Sync</fullName>
+                <default>false</default>
+                <label>Batch Sync</label>
+            </value>
+            <value>
+                <fullName>Create Return Order</fullName>
+                <default>false</default>
+                <label>Create Return Order</label>
+            </value>
+            <value>
+                <fullName>Reconciliation Mismatch</fullName>
+                <default>false</default>
+                <label>Reconciliation Mismatch</label>
+            </value>
+            <value>
+                <fullName>Reconciliation Summary</fullName>
+                <default>false</default>
+                <label>Reconciliation Summary</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

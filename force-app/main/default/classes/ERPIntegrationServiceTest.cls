@@ -65,4 +65,51 @@ private class ERPIntegrationServiceTest {
     Test.stopTest();
     System.assert(healthy, 'Health check should pass');
   }
+
+  @IsTest
+  static void fetchSalesOrders_indexesByExternalId() {
+    Test.setMock(HttpCalloutMock.class, ERPIntegrationMock.salesOrderListMatch());
+
+    Test.startTest();
+    Map<String, Map<String, Object>> indexed =
+      ERPIntegrationService.fetchSalesOrdersByExternalId();
+    Test.stopTest();
+
+    System.assert(indexed.containsKey('corr-001'));
+  }
+
+  @IsTest
+  static void syncReturnOrder_success() {
+    Account acc = new Account(
+      Name = 'Return Customer',
+      BC_Customer_Id__c = 'BC-CUST-3001'
+    );
+    insert acc;
+
+    Case supportCase = new Case(
+      AccountId = acc.Id,
+      Subject = 'Return test',
+      Status = 'Working',
+      Support_Process__c = 'Warranty',
+      RMA_Status__c = 'Approved'
+    );
+    insert supportCase;
+
+    supportCase = [
+      SELECT Id, CaseNumber, AccountId, Account.BC_Customer_Id__c,
+             Support_Process__c, RMA_Status__c
+      FROM Case
+      WHERE Id = :supportCase.Id
+    ];
+
+    Test.setMock(HttpCalloutMock.class, ERPIntegrationMock.successReturnCreate());
+
+    Test.startTest();
+    ERPIntegrationService.ReturnSyncResult result =
+      ERPIntegrationService.syncReturnOrderToERP(supportCase);
+    Test.stopTest();
+
+    System.assert(result.success);
+    System.assertEquals('BC-RET-001', result.returnOrderId);
+  }
 }

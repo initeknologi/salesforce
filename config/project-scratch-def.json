@@ -1,7 +1,13 @@
 {
   "orgName": "ERP Integration Demo",
   "edition": "Developer",
-  "features": ["EnableSetPasswordInApi", "PlatformCache"],
+  "features": [
+    "EnableSetPasswordInApi",
+    "PlatformCache",
+    "ServiceCloud",
+    "Knowledge",
+    "Entitlements"
+  ],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true

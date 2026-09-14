@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Triage_Warranty_Case</name>
+        <label>Triage Warranty Case</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <actionName>WarrantyCaseService</actionName>
+        <actionType>apex</actionType>
+        <faultConnector>
+            <targetReference>Create_Triage_Failure_Task</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>caseId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>WarrantyCaseService</nameSegment>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>62.0</apiVersion>
+    <description>Prioritizes new warranty Cases and creates an idempotent diagnostic follow-up Task.</description>
+    <environments>Default</environments>
+    <interviewLabel>Warranty Case Triage {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Warranty Case Triage</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value><stringValue>LightningFlowBuilder</stringValue></value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value><stringValue>LightningFlowBuilder</stringValue></value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <name>Create_Triage_Failure_Task</name>
+        <label>Create Triage Failure Task</label>
+        <locationX>396</locationX>
+        <locationY>431</locationY>
+        <inputAssignments>
+            <field>Priority</field>
+            <value><stringValue>High</stringValue></value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status</field>
+            <value><stringValue>Not Started</stringValue></value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Subject</field>
+            <value><stringValue>Review warranty triage automation failure</stringValue></value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>WhatId</field>
+            <value><elementReference>$Record.Id</elementReference></value>
+        </inputAssignments>
+        <object>Task</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Triage_Warranty_Case</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Support_Process__c</field>
+            <operator>EqualTo</operator>
+            <value><stringValue>Warranty</stringValue></value>
+        </filters>
+        <filters>
+            <field>RMA_Status__c</field>
+            <operator>EqualTo</operator>
+            <value><stringValue>Not Required</stringValue></value>
+        </filters>
+        <object>Case</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

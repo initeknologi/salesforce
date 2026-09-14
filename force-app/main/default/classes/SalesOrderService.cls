@@ -1,29 +1,33 @@
-/**
- * @description Domain service for Sales Order business logic.
- *              Separates business rules from trigger and UI layers.
- */
 public with sharing class SalesOrderService {
     public static final Set<String> SYNCABLE_STATUSES = new Set<String>{
         'Submitted', 'Sync Failed'
     };
 
-    /**
-     * @description Validates sales orders before insert/update.
-     */
     public static void validateOrders(List<Sales_Order__c> orders) {
         for (Sales_Order__c order : orders) {
+            if (String.isBlank(order.Currency_Code__c)) {
+                order.Currency_Code__c = 'SEK';
+            }
+            if (String.isBlank(order.Correlation_Id__c)) {
+                order.Correlation_Id__c =
+                    'SF-' + EncodingUtil.convertToHex(Crypto.generateAesKey(128));
+            }
             if (order.Total_Amount__c != null && order.Total_Amount__c < 0) {
                 order.Total_Amount__c.addError('Total Amount cannot be negative.');
             }
             if (order.Order_Date__c != null && order.Order_Date__c > Date.today()) {
                 order.Order_Date__c.addError('Order Date cannot be in the future.');
             }
+            if (SYNCABLE_STATUSES.contains(order.Status__c) &&
+                (order.Account__c == null || order.Total_Amount__c == null ||
+                 order.Total_Amount__c <= 0)) {
+                order.addError(
+                    'Submitted orders require an Account and positive Total Amount.'
+                );
+            }
         }
     }
 
-    /**
-     * @description Identifies orders that need ERP synchronization after status change.
-     */
     public static List<Sales_Order__c> getOrdersRequiringSync(
         List<Sales_Order__c> newOrders,
         Map<Id, Sales_Order__c> oldMap
@@ -35,7 +39,11 @@ public with sharing class SalesOrderService {
                 continue;
             }
             Boolean statusChanged = order.Status__c != oldOrder.Status__c;
-            Boolean needsSync = SYNCABLE_STATUSES.contains(order.Status__c);
+            // Failed results are retried by Queueable with an incremented count.
+            // Republishing from Sync Failed would reset the count and loop forever.
+            Boolean needsSync = order.Status__c == 'Submitted' ||
+                (order.Status__c == 'Cancelled' &&
+                 String.isNotBlank(order.ERP_Order_Id__c));
             if (statusChanged && needsSync) {
                 ordersToSync.add(order);
             }
@@ -43,9 +51,6 @@ public with sharing class SalesOrderService {
         return ordersToSync;
     }
 
-    /**
-     * @description Publishes platform events for asynchronous ERP sync.
-     */
     public static void publishSyncEvents(
         List<Sales_Order__c> orders,
         Map<Id, Sales_Order__c> oldMap
@@ -64,9 +69,6 @@ public with sharing class SalesOrderService {
         }
     }
 
-    /**
-     * @description Resolves the platform event operation from order state.
-     */
     public static String resolveEventOperation(
         Sales_Order__c order,
         Sales_Order__c oldOrder
@@ -77,34 +79,78 @@ public with sharing class SalesOrderService {
         return String.isBlank(order.ERP_Order_Id__c) ? 'CREATE' : 'UPDATE';
     }
 
-    /**
-     * @description Updates order status after sync attempt.
-     */
     public static void updateOrderAfterSync(
         Id orderId,
         ERPIntegrationService.SyncResult result
     ) {
-        Sales_Order__c order = new Sales_Order__c(
-            Id = orderId,
-            Last_Sync_Date__c = System.now()
+        Sales_Order__c currentOrder = [
+            SELECT Opportunity__c
+            FROM Sales_Order__c
+            WHERE Id = :orderId
+            LIMIT 1
+        ];
+        updateOrdersAfterSync(
+            new List<Sales_Order__c>{ currentOrder },
+            new Map<Id, ERPIntegrationService.SyncResult>{ orderId => result }
         );
-
-        if (result.success) {
-            order.Status__c = 'Synced';
-            order.ERP_Order_Id__c = result.erpOrderId;
-            order.Sync_Error_Message__c = null;
-        } else {
-            order.Status__c = 'Sync Failed';
-            order.Sync_Error_Message__c = result.errorMessage;
-        }
-
-        update order;
     }
 
-    /**
-     * @description Marks orders as Syncing before async processing begins.
-     */
+    public static void updateOrdersAfterSync(
+        List<Sales_Order__c> sourceOrders,
+        Map<Id, ERPIntegrationService.SyncResult> resultsByOrderId
+    ) {
+        List<Sales_Order__c> orderUpdates = new List<Sales_Order__c>();
+        Map<Id, Opportunity> opportunityUpdates = new Map<Id, Opportunity>();
+
+        for (Sales_Order__c sourceOrder : sourceOrders) {
+            ERPIntegrationService.SyncResult result =
+                resultsByOrderId.get(sourceOrder.Id);
+            if (result == null) {
+                continue;
+            }
+
+            Sales_Order__c orderUpdate = new Sales_Order__c(
+                Id = sourceOrder.Id,
+                Last_Sync_Date__c = System.now(),
+                Status__c = result.success ? 'Synced' : 'Sync Failed',
+                Sync_Error_Message__c = result.success ? null : result.errorMessage
+            );
+            if (result.success && String.isNotBlank(result.erpOrderId)) {
+                orderUpdate.ERP_Order_Id__c = result.erpOrderId;
+            }
+            orderUpdates.add(orderUpdate);
+
+            if (sourceOrder.Opportunity__c != null) {
+                opportunityUpdates.put(
+                    sourceOrder.Opportunity__c,
+                    new Opportunity(
+                        Id = sourceOrder.Opportunity__c,
+                        ERP_Sync_Status__c = result.success ? 'Synced' : 'Failed'
+                    )
+                );
+            }
+        }
+
+        if (!orderUpdates.isEmpty()) {
+            update orderUpdates;
+        }
+        if (!opportunityUpdates.isEmpty()) {
+            update opportunityUpdates.values();
+        }
+    }
+
     public static void markOrdersAsSyncing(List<Id> orderIds) {
+        Set<Id> opportunityIds = new Set<Id>();
+        for (Sales_Order__c order : [
+            SELECT Opportunity__c
+            FROM Sales_Order__c
+            WHERE Id IN :orderIds
+        ]) {
+            if (order.Opportunity__c != null) {
+                opportunityIds.add(order.Opportunity__c);
+            }
+        }
+
         List<Sales_Order__c> orders = new List<Sales_Order__c>();
         for (Id orderId : orderIds) {
             orders.add(new Sales_Order__c(
@@ -115,11 +161,18 @@ public with sharing class SalesOrderService {
         if (!orders.isEmpty()) {
             update orders;
         }
+        if (!opportunityIds.isEmpty()) {
+            List<Opportunity> opportunities = new List<Opportunity>();
+            for (Id opportunityId : opportunityIds) {
+                opportunities.add(new Opportunity(
+                    Id = opportunityId,
+                    ERP_Sync_Status__c = 'Processing'
+                ));
+            }
+            update opportunities;
+        }
     }
 
-    /**
-     * @description Retrieves order summary statistics for dashboard LWC.
-     */
     @AuraEnabled(cacheable=true)
     public static Map<String, Integer> getOrderSummary() {
         if (!Schema.sObjectType.Sales_Order__c.isAccessible()) {
@@ -155,14 +208,13 @@ public with sharing class SalesOrderService {
         return healthy ? 'ERP connection is healthy.' : 'ERP connection failed. Check tunnel and mock server.';
     }
 
-    /**
-     * @description Manually triggers ERP sync for a single order from LWC.
-     */
     @AuraEnabled
     public static String syncOrderToERP(Id orderId) {
         List<Sales_Order__c> orders = [
-            SELECT Id, Status__c, Account__c, Order_Date__c,
-                   Total_Amount__c, Description__c, ERP_Order_Id__c
+            SELECT Id, Status__c, Account__c, Account__r.BC_Customer_Id__c,
+                   Opportunity__c, Order_Date__c, Total_Amount__c,
+                   Currency_Code__c, Correlation_Id__c, Description__c,
+                   ERP_Order_Id__c
             FROM Sales_Order__c
             WHERE Id = :orderId
             WITH SECURITY_ENFORCED

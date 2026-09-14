@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Positive_Amount_On_Submit</fullName>
+    <active>true</active>
+    <description>Submitted orders require a positive amount.</description>
+    <errorConditionFormula>AND(
+  OR(
+    ISPICKVAL(Status__c, &quot;Submitted&quot;),
+    ISPICKVAL(Status__c, &quot;Syncing&quot;),
+    ISPICKVAL(Status__c, &quot;Synced&quot;)
+  ),
+  OR(ISBLANK(Total_Amount__c), Total_Amount__c &lt;= 0)
+)</errorConditionFormula>
+    <errorDisplayField>Total_Amount__c</errorDisplayField>
+    <errorMessage>Total amount must be greater than zero before ERP sync.</errorMessage>
+</ValidationRule>

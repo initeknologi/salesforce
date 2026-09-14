@@ -15,6 +15,10 @@
                 <field>Sales_Order__c</field>
             </layoutItems>
             <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Correlation_Id__c</field>
+            </layoutItems>
+            <layoutItems>
                 <behavior>Required</behavior>
                 <field>Direction__c</field>
             </layoutItems>

@@ -92,4 +92,66 @@ private class SalesOrderServiceTest {
     SalesOrderService.publishSyncEvents(new List<Sales_Order__c>{ order }, null);
     Test.stopTest();
   }
+
+  @IsTest
+  static void updateSuccessWithoutResponseId_preservesExistingErpId() {
+    Account acc = [SELECT Id FROM Account LIMIT 1];
+    Sales_Order__c order = new Sales_Order__c(
+      Account__c = acc.Id,
+      Order_Date__c = Date.today(),
+      Total_Amount__c = 300,
+      Status__c = 'Syncing',
+      ERP_Order_Id__c = 'BC-ORD-EXISTING'
+    );
+    insert order;
+
+    ERPIntegrationService.SyncResult result = new ERPIntegrationService.SyncResult();
+    result.success = true;
+    result.erpOrderId = null;
+
+    SalesOrderService.updateOrdersAfterSync(
+      new List<Sales_Order__c>{ order },
+      new Map<Id, ERPIntegrationService.SyncResult>{ order.Id => result }
+    );
+
+    order = [
+      SELECT Status__c, ERP_Order_Id__c
+      FROM Sales_Order__c
+      WHERE Id = :order.Id
+    ];
+    System.assertEquals('Synced', order.Status__c);
+    System.assertEquals('BC-ORD-EXISTING', order.ERP_Order_Id__c);
+  }
+
+  @IsTest
+  static void getOrdersRequiringSync_handlesSubmitCancelAndFailure() {
+    Id orderId = Sales_Order__c.SObjectType.getDescribe().getKeyPrefix() +
+      '000000000001';
+    Sales_Order__c oldOrder = new Sales_Order__c(
+      Id = orderId,
+      Status__c = 'Syncing',
+      ERP_Order_Id__c = 'BC-ORD-001'
+    );
+
+    Sales_Order__c cancelledOrder = oldOrder.clone(true, true, false, false);
+    cancelledOrder.Status__c = 'Cancelled';
+    System.assertEquals(
+      1,
+      SalesOrderService.getOrdersRequiringSync(
+        new List<Sales_Order__c>{ cancelledOrder },
+        new Map<Id, Sales_Order__c>{ orderId => oldOrder }
+      ).size()
+    );
+
+    Sales_Order__c failedOrder = oldOrder.clone(true, true, false, false);
+    failedOrder.Status__c = 'Sync Failed';
+    System.assertEquals(
+      0,
+      SalesOrderService.getOrdersRequiringSync(
+        new List<Sales_Order__c>{ failedOrder },
+        new Map<Id, Sales_Order__c>{ orderId => oldOrder }
+      ).size(),
+      'Internal failure status must not reset the retry counter'
+    );
+  }
 }

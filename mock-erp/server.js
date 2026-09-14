@@ -18,6 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const API_KEY = process.env.API_KEY || 'demo-api-key-local-dev';
 const DATA_FILE = path.join(__dirname, 'data', 'orders.json');
+const RETURN_DATA_FILE = path.join(__dirname, 'data', 'returnOrders.json');
 
 app.use(cors());
 app.use(express.json());
@@ -37,6 +38,23 @@ function saveOrders(orders) {
   const dir = path.dirname(DATA_FILE);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
+}
+
+function loadReturnOrders() {
+  try {
+    if (fs.existsSync(RETURN_DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(RETURN_DATA_FILE, 'utf8'));
+    }
+  } catch (err) {
+    console.error('Error loading return orders:', err.message);
+  }
+  return [];
+}
+
+function saveReturnOrders(orders) {
+  const dir = path.dirname(RETURN_DATA_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(RETURN_DATA_FILE, JSON.stringify(orders, null, 2));
 }
 
 function authenticate(req, res, next) {
@@ -75,12 +93,23 @@ app.get(/^\/api\/v2\.0\/salesOrders\(([^)]+)\)$/, authenticate, (req, res) => {
 
 app.post('/api/v2.0/salesOrders', authenticate, (req, res) => {
   const orders = loadOrders();
+  if (!req.body.externalId) {
+    return res.status(400).json({ error: 'externalId is required for idempotency' });
+  }
+
+  const existingOrder = orders.find(o => o.externalId === req.body.externalId);
+  if (existingOrder) {
+    console.log(`[IDEMPOTENT REPLAY] Order ${existingOrder.id} externalId=${req.body.externalId}`);
+    return res.status(200).json({ ...existingOrder, idempotentReplay: true });
+  }
+
   const newOrder = {
-    id: `BC-ORD-${String(orders.length + 1).padStart(3, '0')}`,
+    id: `BC-ORD-${uuidv4().split('-')[0].toUpperCase()}`,
     externalId: req.body.externalId,
     customerNumber: req.body.customerNumber,
     orderDate: req.body.orderDate,
     totalAmount: req.body.totalAmount,
+    currencyCode: req.body.currencyCode,
     description: req.body.description,
     status: 'Open',
     createdAt: new Date().toISOString()
@@ -114,6 +143,37 @@ app.post(/^\/api\/v2\.0\/salesOrders\(([^)]+)\)\/cancel$/, authenticate, (req, r
   saveOrders(orders);
   console.log(`[CANCEL] Order ${id}`);
   res.json(orders[index]);
+});
+
+app.get('/api/v2.0/returnOrders', authenticate, (req, res) => {
+  res.json({ value: loadReturnOrders() });
+});
+
+app.post('/api/v2.0/returnOrders', authenticate, (req, res) => {
+  const returnOrders = loadReturnOrders();
+  if (!req.body.externalId) {
+    return res.status(400).json({ error: 'externalId is required for idempotency' });
+  }
+
+  const existing = returnOrders.find(o => o.externalId === req.body.externalId);
+  if (existing) {
+    console.log(`[IDEMPOTENT REPLAY] Return ${existing.id} externalId=${req.body.externalId}`);
+    return res.status(200).json({ ...existing, idempotentReplay: true });
+  }
+
+  const newReturn = {
+    id: `BC-RET-${uuidv4().split('-')[0].toUpperCase()}`,
+    externalId: req.body.externalId,
+    customerNumber: req.body.customerNumber,
+    caseNumber: req.body.caseNumber,
+    reason: req.body.reason || 'Warranty RMA',
+    status: 'Open',
+    createdAt: new Date().toISOString()
+  };
+  returnOrders.push(newReturn);
+  saveReturnOrders(returnOrders);
+  console.log(`[CREATE] Return ${newReturn.id} externalId=${newReturn.externalId}`);
+  res.status(201).json(newReturn);
 });
 
 app.post('/api/v2.0/simulate-failure', authenticate, (req, res) => {

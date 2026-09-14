@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>BC_Customer_Id_Format</fullName>
+    <active>true</active>
+    <description>Enforces a consistent Business Central customer id format.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(BC_Customer_Id__c)),
+  NOT(REGEX(BC_Customer_Id__c, &quot;^BC-CUST-[0-9]+$&quot;))
+)</errorConditionFormula>
+    <errorDisplayField>BC_Customer_Id__c</errorDisplayField>
+    <errorMessage>Use format BC-CUST- followed by digits (example: BC-CUST-1001).</errorMessage>
+</ValidationRule>
